@@ -58,9 +58,9 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
                   const isPresent = attendanceMap.get(date)?.has(member.id) ?? false;
                   
                   return (
-                    <Tooltip key={day} delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <TableCell className="p-0 text-center">
+                    <TableCell key={day} className="p-0 text-center">
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
                           <div className={cn(
                             "flex h-full w-full items-center justify-center",
                              isPresent ? 'bg-accent/20' : 'bg-muted/50'
@@ -71,13 +71,13 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
                               <X className="h-5 w-5 text-muted-foreground" style={{color: '#90CAF9'}} />
                             )}
                           </div>
-                        </TableCell>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{member.name}</p>
-                        <p>{new Date(date).toLocaleDateString()}: {isPresent ? 'Present' : 'Absent'}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{member.name}</p>
+                          <p>{new Date(date).toLocaleDateString()}: {isPresent ? 'Present' : 'Absent'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
                   );
                 })}
               </TableRow>
