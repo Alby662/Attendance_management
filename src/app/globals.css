@@ -86,3 +86,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .page-break {
+    page-break-after: always;
+  }
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page-break {
+    page-break-after: always;
+  }
+  @page {
+    size: auto;
+    margin: 0.5in;
+  }
+}

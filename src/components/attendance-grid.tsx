@@ -31,6 +31,14 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
     attendanceMap.get(rec.date)?.add(rec.memberId);
   });
 
+  if (members.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-40 rounded-md border border-dashed">
+        <p className="text-muted-foreground">No members to display for this page.</p>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <ScrollArea className="w-full rounded-md border">
