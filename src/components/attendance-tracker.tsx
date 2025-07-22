@@ -59,7 +59,7 @@ export function AttendanceTracker() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={`https://placehold.co/40x40.png?text=${member.name.charAt(0)}`} alt={member.name} data-ai-hint="person portrait"/>
+                          <AvatarImage src={`https://placehold.co/40x40.png?text=${encodeURIComponent(member.name.charAt(0))}`} alt={member.name} data-ai-hint="person portrait"/>
                           <AvatarFallback>
                             <User />
                           </AvatarFallback>
