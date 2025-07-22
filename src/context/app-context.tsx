@@ -24,6 +24,8 @@ export const AppContext = createContext<AppContextType>({
   isLoading: true,
 });
 
+const sortMembers = (m: Member[]) => [...m].sort((a, b) => a.name.localeCompare(b.name));
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
@@ -35,17 +37,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const storedAttendance = localStorage.getItem('attendease_attendance');
 
       if (storedMembers && storedAttendance) {
-        setMembers(JSON.parse(storedMembers));
+        setMembers(sortMembers(JSON.parse(storedMembers)));
         setAttendance(JSON.parse(storedAttendance));
       } else {
         // First time load, use initial data
-        setMembers(initialMembers);
+        setMembers(sortMembers(initialMembers));
         setAttendance(initialAttendance);
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       // Fallback to initial data if localStorage fails
-      setMembers(initialMembers);
+      setMembers(sortMembers(initialMembers));
       setAttendance(initialAttendance);
     } finally {
       setIsLoading(false);
@@ -74,12 +76,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addMember = (member: Omit<Member, 'id'>) => {
-    setMembers((prev) => [...prev, { ...member, id: Date.now().toString() }]);
+    setMembers((prev) => sortMembers([...prev, { ...member, id: Date.now().toString() }]));
   };
 
   const updateMember = (updatedMember: Member) => {
     setMembers((prev) =>
-      prev.map((m) => (m.id === updatedMember.id ? updatedMember : m))
+      sortMembers(prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)))
     );
   };
 
