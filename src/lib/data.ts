@@ -1,5 +1,5 @@
 import type { Member, AttendanceRecord } from './types';
-import { subDays, format } from 'date-fns';
+import { subDays, format, getDay } from 'date-fns';
 
 export const members: Member[] = [
   { id: '1', name: 'Alice Johnson', department: 'Engineering', role: 'Software Engineer', joinDate: '2023-01-15' },
@@ -14,13 +14,23 @@ export const members: Member[] = [
 
 const today = new Date();
 const attendance: AttendanceRecord[] = [];
-for (let i = 0; i < 90; i++) { // Generate for more days
+
+// Generate for the past 90 days
+for (let i = 0; i < 90; i++) { 
   const date = subDays(today, i);
+  
+  // Skip weekends (Saturday=6, Sunday=0)
+  const dayOfWeek = getDay(date);
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    continue;
+  }
+
   const dateString = format(date, 'yyyy-MM-dd');
 
   members.forEach(member => {
     // Only generate attendance if the date is on or after join date
-    if (new Date(dateString) >= new Date(member.joinDate)) {
+    const joinDate = new Date(member.joinDate);
+    if (date >= joinDate) {
       // ~80% chance of being present
       if (Math.random() > 0.2) {
         attendance.push({ memberId: member.id, date: dateString });

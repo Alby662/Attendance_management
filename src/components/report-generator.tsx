@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useRef, useEffect } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDaysInMonth, format } from 'date-fns';
 
@@ -39,6 +39,13 @@ export function ReportGenerator() {
     year: number;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (reportData && reportRef.current) {
+        reportRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [reportData]);
 
   const handleGenerateReport = () => {
     const year = parseInt(selectedYear);
@@ -126,7 +133,7 @@ export function ReportGenerator() {
         </div>
       </CardHeader>
       {reportData && (
-        <CardContent>
+        <CardContent ref={reportRef}>
           <div className="my-4 flex flex-col items-center justify-between gap-4 sm:flex-row print:hidden">
             <div className="flex items-center justify-center gap-2">
               <Button

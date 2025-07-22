@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AppContext } from '@/context/app-context';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function AttendanceTracker() {
   const { members, attendance, addAttendanceRecord } = useContext(AppContext);
@@ -36,7 +37,38 @@ export function AttendanceTracker() {
   };
   
   if (!isClient) {
-    return null; // or a loading skeleton
+    return (
+        <Card>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[60%] md:w-[40%]">Member</TableHead>
+                            <TableHead className="hidden md:table-cell">Department</TableHead>
+                            <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-10 w-10 rounded-full" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-[150px]" />
+                                            <Skeleton className="h-3 w-[100px] md:hidden" />
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-[120px] ml-auto" /></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
   }
 
   return (
