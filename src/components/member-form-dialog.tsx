@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format } from 'date-fns';
 
 import {
   Dialog,
@@ -28,7 +29,7 @@ import type { Member } from '@/lib/types';
 interface MemberFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: Member) => void;
+  onSave: (member: Omit<Member, 'id'> & { id?: string }) => void;
   member: Member | null;
 }
 
@@ -37,6 +38,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   department: z.string().min(1, { message: 'Department is required.' }),
   role: z.string().min(1, { message: 'Role is required.' }),
+  joinDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date format.' }),
 });
 
 export function MemberFormDialog({ isOpen, onOpenChange, onSave, member }: MemberFormDialogProps) {
@@ -47,17 +49,22 @@ export function MemberFormDialog({ isOpen, onOpenChange, onSave, member }: Membe
       name: member?.name || '',
       department: member?.department || '',
       role: member?.role || '',
+      joinDate: member?.joinDate ? format(new Date(member.joinDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(member || { name: '', department: '', role: '' });
+      form.reset(
+        member
+          ? { ...member, joinDate: format(new Date(member.joinDate), 'yyyy-MM-dd') }
+          : { name: '', department: '', role: '', joinDate: format(new Date(), 'yyyy-MM-dd') }
+      );
     }
   }, [isOpen, member, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    onSave({ ...values, id: member?.id || Date.now().toString() });
+    onSave(values);
     onOpenChange(false);
   };
 
@@ -106,6 +113,19 @@ export function MemberFormDialog({ isOpen, onOpenChange, onSave, member }: Membe
                   <FormLabel>Role / Year</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Senior Developer" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="joinDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Join Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

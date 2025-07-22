@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { PlusCircle } from 'lucide-react';
 
 import type { Member } from '@/lib/types';
@@ -8,13 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberFormDialog } from '@/components/member-form-dialog';
 import { MemberTable } from '@/components/member-table';
+import { AppContext } from '@/context/app-context';
 
-interface MembersClientProps {
-  initialMembers: Member[];
-}
-
-export function MembersClient({ initialMembers }: MembersClientProps) {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+export function MembersClient() {
+  const { members, addMember, updateMember, deleteMember } = useContext(AppContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
@@ -29,14 +26,14 @@ export function MembersClient({ initialMembers }: MembersClientProps) {
   };
 
   const handleDeleteMember = (memberId: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    deleteMember(memberId);
   };
 
-  const handleSaveMember = (member: Member) => {
-    if (selectedMember) {
-      setMembers((prev) => prev.map((m) => (m.id === member.id ? member : m)));
+  const handleSaveMember = (memberData: Omit<Member, 'id'> & { id?: string }) => {
+    if (memberData.id) {
+      updateMember({ ...memberData, id: memberData.id });
     } else {
-      setMembers((prev) => [...prev, { ...member, id: Date.now().toString() }]);
+      addMember(memberData);
     }
     setIsFormOpen(false);
   };

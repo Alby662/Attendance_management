@@ -3,6 +3,7 @@ export type Member = {
   name: string;
   department: string;
   role: string;
+  joinDate: string; // YYYY-MM-DD format
 };
 
 export type AttendanceRecord = {

@@ -3,6 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from "@/components/ui/toaster"
+import { AppProvider } from '@/context/app-context';
 
 export const metadata: Metadata = {
   title: 'AttendEase',
@@ -22,11 +23,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-        </div>
-        <Toaster />
+        <AppProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+          </div>
+          <Toaster />
+        </AppProvider>
       </body>
     </html>
   );

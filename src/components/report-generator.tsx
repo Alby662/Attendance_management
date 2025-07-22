@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDaysInMonth, format } from 'date-fns';
 
@@ -15,12 +15,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceGrid } from './attendance-grid';
 import type { Member, AttendanceRecord } from '@/lib/types';
-import { useToast } from "@/hooks/use-toast"
-
-interface ReportGeneratorProps {
-  allMembers: Member[];
-  allAttendance: AttendanceRecord[];
-}
+import { useToast } from "@/hooks/use-toast";
+import { AppContext } from '@/context/app-context';
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -30,7 +26,8 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 const MEMBERS_PER_PAGE = 10;
 
-export function ReportGenerator({ allMembers, allAttendance }: ReportGeneratorProps) {
+export function ReportGenerator() {
+  const { members: allMembers, attendance: allAttendance } = useContext(AppContext);
   const { toast } = useToast();
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -73,6 +70,11 @@ export function ReportGenerator({ allMembers, allAttendance }: ReportGeneratorPr
   const paginatedMembers = reportData
     ? allMembers.slice((currentPage - 1) * MEMBERS_PER_PAGE, currentPage * MEMBERS_PER_PAGE)
     : [];
+    
+  const handlePrint = () => {
+    window.print();
+  }
+
 
   return (
     <Card>
@@ -133,7 +135,7 @@ export function ReportGenerator({ allMembers, allAttendance }: ReportGeneratorPr
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentPage(p => p + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || totalPages === 0}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -142,28 +144,42 @@ export function ReportGenerator({ allMembers, allAttendance }: ReportGeneratorPr
                <Button variant="outline" onClick={() => handleExport('CSV')}>
                  <FileText className="mr-2 h-4 w-4" /> Export as CSV
                </Button>
-               <Button variant="outline" onClick={() => handleExport('PDF')}>
+               <Button variant="outline" onClick={handlePrint}>
                  <Download className="mr-2 h-4 w-4" /> Export as PDF
                </Button>
             </div>
           </div>
 
           <div className="printable-area">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <div key={page} className={`page-break ${page === currentPage ? 'block' : 'hidden'} print:block`}>
-                <div className="mb-4 hidden print:block">
-                  <h2 className="text-2xl font-bold">Attendance Report - {months.find(m => m.value.toString() === selectedMonth)?.label} {selectedYear}</h2>
-                  <p className="text-muted-foreground">Page {page} of {totalPages}</p>
-                </div>
+              <div className={`page-break ${totalPages > 1 ? 'hidden' : ''} print:hidden`}>
                 <AttendanceGrid
-                  members={allMembers.slice((page - 1) * MEMBERS_PER_PAGE, page * MEMBERS_PER_PAGE)}
+                  members={paginatedMembers}
                   attendance={reportData.attendance}
                   days={reportData.days}
                   month={reportData.month}
                   year={reportData.year}
                 />
               </div>
-            ))}
+
+              {/* For printing */}
+              <div className="hidden print:block">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <div key={page} className={`page-break`}>
+                    <div className="mb-4">
+                      <h2 className="text-2xl font-bold">Attendance Report - {months.find(m => m.value.toString() === selectedMonth)?.label} {selectedYear}</h2>
+                      <p className="text-muted-foreground">Page {page} of {totalPages}</p>
+                    </div>
+                    <AttendanceGrid
+                      members={allMembers.slice((page - 1) * MEMBERS_PER_PAGE, page * MEMBERS_PER_PAGE)}
+                      attendance={reportData.attendance}
+                      days={reportData.days}
+                      month={reportData.month}
+                      year={reportData.year}
+                    />
+                  </div>
+                ))}
+              </div>
+
           </div>
         </CardContent>
       )}

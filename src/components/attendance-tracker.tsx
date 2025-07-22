@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,15 +13,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { Member, AttendanceRecord } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { AppContext } from '@/context/app-context';
 
-interface AttendanceTrackerProps {
-  members: Member[];
-  initialAttendance: AttendanceRecord[];
-}
-
-export function AttendanceTracker({ members, initialAttendance }: AttendanceTrackerProps) {
+export function AttendanceTracker() {
+  const { members, attendance, addAttendanceRecord } = useContext(AppContext);
   const [presentMembers, setPresentMembers] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
 
@@ -29,12 +24,14 @@ export function AttendanceTracker({ members, initialAttendance }: AttendanceTrac
     setIsClient(true);
     const todayString = new Date().toISOString().split('T')[0];
     const todaysPresents = new Set(
-      initialAttendance.filter((rec) => rec.date === todayString).map((rec) => rec.memberId)
+      attendance.filter((rec) => rec.date === todayString).map((rec) => rec.memberId)
     );
     setPresentMembers(todaysPresents);
-  }, [initialAttendance]);
+  }, [attendance]);
 
   const handleMarkPresent = (memberId: string) => {
+    const todayString = new Date().toISOString().split('T')[0];
+    addAttendanceRecord({ memberId, date: todayString });
     setPresentMembers((prev) => new Set(prev).add(memberId));
   };
   

@@ -1,5 +1,6 @@
+'use client';
+
 import { AttendanceTracker } from "@/components/attendance-tracker";
-import { members, attendanceRecords } from "@/lib/data";
 
 export default function Home() {
   const today = new Date();
@@ -16,7 +17,7 @@ export default function Home() {
         <h1 className="text-3xl font-bold tracking-tight text-primary">Daily Attendance</h1>
         <p className="text-muted-foreground">{dateString}</p>
       </div>
-      <AttendanceTracker members={members} initialAttendance={attendanceRecords} />
+      <AttendanceTracker />
     </div>
   );
 }
