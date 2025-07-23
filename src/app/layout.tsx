@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from "@/components/ui/toaster"
 import { AppProvider } from '@/context/app-context';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'AttendEase',
@@ -25,6 +26,14 @@ export default function RootLayout({
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
         <AppProvider>
           <div className="relative flex min-h-screen flex-col">
+            <Image
+              src="https://placehold.co/1200x800.png"
+              alt="Background"
+              layout="fill"
+              objectFit="cover"
+              className="-z-10 brightness-50 blur-sm print:hidden"
+              data-ai-hint="abstract background"
+            />
             <SiteHeader />
             <main className="flex-1">{children}</main>
           </div>
