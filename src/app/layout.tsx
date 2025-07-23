@@ -27,7 +27,7 @@ export default function RootLayout({
         <AppProvider>
           <div className="relative flex min-h-screen flex-col">
             <Image
-              src="https://placehold.co/1200x800.png"
+              src="/background.png"
               alt="Background"
               layout="fill"
               objectFit="cover"
