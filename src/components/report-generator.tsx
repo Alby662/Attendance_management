@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceGrid } from './attendance-grid';
-import type { Member, AttendanceRecord } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { AppContext } from '@/context/app-context';
 import { Logo } from './icons';
@@ -29,12 +28,11 @@ const MEMBERS_PER_PAGE = 10;
 const DAYS_PER_CHUNK = 15;
 
 export function ReportGenerator() {
-  const { members: allMembers, attendance: allAttendance } = useContext(AppContext);
+  const { members: allMembers, attendance: allAttendance, toggleAttendance } = useContext(AppContext);
   const { toast } = useToast();
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
   const [reportData, setReportData] = useState<{
-    attendance: AttendanceRecord[];
     days: number[];
     month: number;
     year: number;
@@ -47,6 +45,11 @@ export function ReportGenerator() {
         reportRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [reportData]);
+  
+  const handleCellClick = (memberId: string, date: string, status: 'P' | 'A') => {
+    toggleAttendance({ memberId, date });
+    // We can directly call the context function, the state will update automatically
+  };
 
   const handleGenerateReport = () => {
     const year = parseInt(selectedYear);
@@ -61,15 +64,9 @@ export function ReportGenerator() {
       const dayDate = new Date(year, month - 1, day);
       return !isFuture(dayDate) || dayDate.getTime() === today.getTime();
     });
-
-    const monthStr = month.toString().padStart(2, '0');
-    const filteredAttendance = allAttendance.filter((rec) =>
-      rec.date.startsWith(`${year}-${monthStr}`)
-    );
     
     setCurrentPage(1);
     setReportData({
-      attendance: filteredAttendance,
       days: daysArray,
       month: month,
       year: year,
@@ -81,8 +78,9 @@ export function ReportGenerator() {
       window.print();
     } else {
       toast({
-        title: "Export Initiated",
-        description: `Your ${format} export will be downloaded shortly. (This is a demo action)`,
+        title: "Export Not Implemented",
+        description: `CSV export is a planned feature.`,
+        variant: 'destructive',
       });
       console.log(`Exporting report as ${format}...`);
     }
@@ -179,10 +177,11 @@ export function ReportGenerator() {
           <div className="printable-area print:hidden">
             <AttendanceGrid
               members={paginatedMembers}
-              attendance={reportData.attendance}
+              attendance={allAttendance}
               days={reportData.days}
               month={reportData.month}
               year={reportData.year}
+              onCellClick={handleCellClick}
             />
           </div>
 
@@ -206,7 +205,7 @@ export function ReportGenerator() {
                     </div>
                     <AttendanceGrid
                       members={allMembers.slice((page - 1) * MEMBERS_PER_PAGE, page * MEMBERS_PER_PAGE)}
-                      attendance={reportData.attendance}
+                      attendance={allAttendance}
                       days={chunk}
                       month={reportData.month}
                       year={reportData.year}

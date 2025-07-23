@@ -19,9 +19,10 @@ interface AttendanceGridProps {
   days: number[];
   month: number;
   year: number;
+  onCellClick?: (memberId: string, date: string, status: 'P' | 'A') => void;
 }
 
-export function AttendanceGrid({ members, attendance, days, month, year }: AttendanceGridProps) {
+export function AttendanceGrid({ members, attendance, days, month, year, onCellClick }: AttendanceGridProps) {
   const attendanceMap = new Map<string, Set<string>>();
   attendance.forEach(rec => {
     if (!attendanceMap.has(rec.date)) {
@@ -51,7 +52,7 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
               const dayOfWeek = getDay(dayDate); // 0 for Sunday, 6 for Saturday
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
               return (
-                <TableHead key={day} className={cn("w-20 text-center", isWeekend && "bg-red-50/50")}>
+                <TableHead key={day} className={cn("w-20 text-center", isWeekend && "bg-red-50/50 print:bg-red-50")}>
                   {day} <br/> {format(dayDate, 'E')}
                 </TableHead>
               )
@@ -75,16 +76,21 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
                 }
                 
                 if (isWeekend) {
-                   return <TableCell key={day} className="text-center bg-red-50/50 text-muted-foreground">--</TableCell>;
+                   return <TableCell key={day} className="text-center bg-red-50/50 print:bg-red-50 text-muted-foreground">--</TableCell>;
                 }
 
                 const isPresent = attendanceMap.get(date)?.has(member.id) ?? false;
                 
                 return (
-                  <TableCell key={day} className={cn(
+                  <TableCell 
+                    key={day} 
+                    className={cn(
                       "text-center font-semibold",
-                       isPresent ? 'text-primary' : 'text-destructive/80'
-                    )}>
+                       isPresent ? 'text-primary' : 'text-destructive/80',
+                       onCellClick && "cursor-pointer hover:bg-muted/50"
+                    )}
+                    onClick={() => onCellClick?.(member.id, date, isPresent ? 'A' : 'P')}
+                  >
                       {isPresent ? 'P' : 'A'}
                   </TableCell>
                 );

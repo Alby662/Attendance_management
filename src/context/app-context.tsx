@@ -10,7 +10,8 @@ interface AppContextType {
   addMember: (member: Omit<Member, 'id'>) => void;
   updateMember: (member: Member) => void;
   deleteMember: (memberId: string) => void;
-  addAttendanceRecord: (record: AttendanceRecord) => void;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => void;
+  toggleAttendance: (record: Omit<AttendanceRecord, 'id'>) => void;
   isLoading: boolean;
 }
 
@@ -21,6 +22,7 @@ export const AppContext = createContext<AppContextType>({
   updateMember: () => {},
   deleteMember: () => {},
   addAttendanceRecord: () => {},
+  toggleAttendance: () => {},
   isLoading: true,
 });
 
@@ -100,9 +102,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const toggleAttendance = (record: AttendanceRecord) => {
+    setAttendance((prev) => {
+      const existingIndex = prev.findIndex(r => r.memberId === record.memberId && r.date === record.date);
+      if (existingIndex > -1) {
+        // Record exists, so remove it (mark as absent)
+        const newAttendance = [...prev];
+        newAttendance.splice(existingIndex, 1);
+        return newAttendance;
+      } else {
+        // Record does not exist, so add it (mark as present)
+        return [...prev, record];
+      }
+    });
+  };
+
   return (
     <AppContext.Provider
-      value={{ members, attendance, addMember, updateMember, deleteMember, addAttendanceRecord, isLoading }}
+      value={{ members, attendance, addMember, updateMember, deleteMember, addAttendanceRecord, toggleAttendance, isLoading }}
     >
       {children}
     </AppContext.Provider>
