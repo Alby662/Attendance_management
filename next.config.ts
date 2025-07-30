@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  publicRuntimeConfig: {
+    featureFlags: JSON.parse(process.env.FEATURE_FLAGS || '{}'),
+  },
 };
 
 export default nextConfig;

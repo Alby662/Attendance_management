@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // For this prototype, we'll allow reads and writes by default
+    // In a real app, you would implement authentication and granular access control.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
