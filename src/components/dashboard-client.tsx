@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AppContext } from '@/context/app-context';
+import { MembersContext } from '@/context/members-context';
+import { AttendanceContext } from '@/context/attendance-context';
 import { format, getDaysInMonth, subDays, getDay, isAfter, parseISO } from 'date-fns';
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -31,9 +32,12 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 export function DashboardClient() {
-  const { members, attendance, isLoading } = useContext(AppContext);
+  const { members, isLoading: isMembersLoading } = useContext(MembersContext);
+  const { attendance, isLoading: isAttendanceLoading } = useContext(AttendanceContext);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
+
+  const isLoading = isMembersLoading || isAttendanceLoading;
 
   const monthlyAttendanceData = useMemo(() => {
     if (isLoading) return [];

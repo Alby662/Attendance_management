@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberFormDialog } from '@/components/member-form-dialog';
 import { MemberTable } from '@/components/member-table';
-import { AppContext } from '@/context/app-context';
+import { MembersContext } from '@/context/members-context';
 
 export function MembersClient() {
-  const { members, addMember, updateMember, deleteMember } = useContext(AppContext);
+  const { members, addMember, updateMember, deleteMember } = useContext(MembersContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 

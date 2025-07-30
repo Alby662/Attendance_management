@@ -3,6 +3,7 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDaysInMonth, format, isFuture, startOfToday } from 'date-fns';
+import getConfig from 'next/config';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,8 +16,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceGrid } from './attendance-grid';
 import { useToast } from "@/hooks/use-toast";
-import { AppContext } from '@/context/app-context';
 import { Logo } from './icons';
+import { MembersContext } from '@/context/members-context';
+import { AttendanceContext } from '@/context/attendance-context';
+
+const { publicRuntimeConfig } = getConfig();
+const { featureFlags } = publicRuntimeConfig;
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -28,7 +33,8 @@ const MEMBERS_PER_PAGE = 10;
 const DAYS_PER_CHUNK = 15;
 
 export function ReportGenerator() {
-  const { members: allMembers, attendance: allAttendance, toggleAttendance } = useContext(AppContext);
+  const { members: allMembers } = useContext(MembersContext);
+  const { attendance: allAttendance, toggleAttendance } = useContext(AttendanceContext);
   const { toast } = useToast();
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -75,7 +81,15 @@ export function ReportGenerator() {
   
   const handleExport = (format: 'CSV' | 'PDF') => {
     if (format === 'PDF') {
-      window.print();
+      if (featureFlags.pdfExport) {
+        window.print();
+      } else {
+         toast({
+          title: "Feature Not Available",
+          description: "PDF export is currently disabled.",
+          variant: 'destructive',
+        });
+      }
     } else {
       toast({
         title: "Export Not Implemented",

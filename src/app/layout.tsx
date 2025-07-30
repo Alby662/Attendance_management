@@ -3,7 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from "@/components/ui/toaster"
-import { AppProvider } from '@/context/app-context';
+import { AppProviders } from '@/context/app-providers';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
-        <AppProvider>
+        <AppProviders>
           <div className="relative flex min-h-screen flex-col">
             <Image
               src="/background.png"
@@ -38,7 +38,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
           </div>
           <Toaster />
-        </AppProvider>
+        </AppProviders>
       </body>
     </html>
   );

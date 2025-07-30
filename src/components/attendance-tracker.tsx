@@ -13,11 +13,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AppContext } from '@/context/app-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MembersContext } from '@/context/members-context';
+import { AttendanceContext } from '@/context/attendance-context';
 
 export function AttendanceTracker() {
-  const { members, attendance, addAttendanceRecord } = useContext(AppContext);
+  const { members } = useContext(MembersContext);
+  const { attendance, addAttendanceRecord } = useContext(AttendanceContext);
   const [presentMembers, setPresentMembers] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
 
