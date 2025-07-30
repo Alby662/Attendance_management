@@ -1,10 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // For this prototype, we'll allow reads and writes by default
-    // In a real app, you would implement authentication and granular access control.
-    match /{document=**} {
-      allow read, write: if true;
+    match /organizations/{orgId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin(orgId);
+      match /members/{memberId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin(orgId);
+      }
+      match /attendance/{dateId}/records/{recId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin(orgId);
+      }
     }
   }
+}
+function isSignedIn() { return request.auth != null; }
+function isAdmin(orgId) {
+  return request.auth.token.role == 'admin'
+    && request.auth.uid == get(/databases/$(database)/documents/organizations/$(orgId)/admins/$(request.auth.uid)).id;
 }
