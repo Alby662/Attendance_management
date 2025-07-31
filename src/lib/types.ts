@@ -7,8 +7,10 @@ export type Member = {
 };
 
 export type AttendanceRecord = {
-  id?: string; // Optional: The doc ID from Firestore, which is the date string YYYY-MM-DD
+  // This type represents a single user's status on a single day.
+  // It is derived from the Firestore structure: attendance/{date}/users/{memberId}
   memberId: string;
   date: string; // YYYY-MM-DD format
   status: 'P' | 'A';
+  name?: string; // Member's name, often stored with the record for convenience
 };

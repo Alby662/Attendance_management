@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, ReactNode, useState, useEffect, useContext } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AttendanceRecord } from '@/lib/types';
 import { logAuditEvent } from '@/lib/audit';
@@ -9,7 +9,7 @@ import { MembersContext } from './members-context';
 
 interface AttendanceContextType {
   attendance: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'status'> & { status: 'P' }) => Promise<void>;
+  addAttendanceRecord: (record: { memberId: string; date: string; status: 'P' }) => Promise<void>;
   toggleAttendance: (record: { memberId: string; date: string; status: 'P' | 'A' }) => Promise<void>;
   isLoading: boolean;
 }
@@ -27,26 +27,31 @@ export const AttendanceProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // This listener watches the top-level 'attendance' collection for new date documents.
     const attendanceCol = collection(db, 'attendance');
 
     const unsubscribe = onSnapshot(attendanceCol, async (snapshot) => {
       setIsLoading(true);
-      const attendanceData: AttendanceRecord[] = [];
-      for (const dateDoc of snapshot.docs) {
+      const attendancePromises: Promise<AttendanceRecord[]>[] = snapshot.docs.map(async (dateDoc) => {
         const date = dateDoc.id;
         const usersCol = collection(db, `attendance/${date}/users`);
         const usersSnapshot = await getDocs(usersCol);
-        usersSnapshot.forEach((userDoc) => {
+        
+        return usersSnapshot.docs.map((userDoc) => {
           const userData = userDoc.data();
-          attendanceData.push({
-            id: date,
+          return {
             date: date,
             memberId: userDoc.id,
-            status: userData.status || 'A',
-          });
+            status: userData.status || 'A', // Default to Absent if status is missing
+            name: userData.name,
+          };
         });
-      }
-      setAttendance(attendanceData);
+      });
+
+      const allAttendanceArrays = await Promise.all(attendancePromises);
+      const flattenedAttendance = allAttendanceArrays.flat();
+      
+      setAttendance(flattenedAttendance);
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching attendance:", error);
@@ -56,7 +61,7 @@ export const AttendanceProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
   
-  const addAttendanceRecord = async (record: Omit<AttendanceRecord, 'id'|'status'> & {status: 'P'}) => {
+  const addAttendanceRecord = async (record: { memberId: string; date: string; status: 'P' }) => {
     const { memberId, date } = record;
     const member = members.find(m => m.id === memberId);
     if (!member) {
@@ -64,6 +69,7 @@ export const AttendanceProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
+    // Path: /attendance/{YYYY-MM-DD}/users/{memberId}
     const userDocRef = doc(db, `attendance/${date}/users/${memberId}`);
     try {
       await setDoc(userDocRef, { name: member.name, status: 'P' }, { merge: true });
@@ -83,10 +89,10 @@ export const AttendanceProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, `attendance/${date}/users/${memberId}`);
     
     try {
-      if (status === 'P') { // If currently present, mark as absent (delete)
+      if (status === 'P') { // If currently present, mark as absent (delete the record)
         await deleteDoc(userDocRef);
         logAuditEvent('REMOVE_ATTENDANCE', { memberId, date });
-      } else { // If currently absent, mark as present (add/update)
+      } else { // If currently absent, mark as present (add/update the record)
         await setDoc(userDocRef, { name: member.name, status: 'P' }, { merge: true });
         logAuditEvent('ADD_ATTENDANCE', { memberId, date, status: 'P' });
       }
