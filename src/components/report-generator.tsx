@@ -20,9 +20,6 @@ import { Logo } from './icons';
 import { MembersContext } from '@/context/members-context';
 import { AttendanceContext } from '@/context/attendance-context';
 
-const { publicRuntimeConfig } = getConfig();
-const { featureFlags } = publicRuntimeConfig;
-
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: i + 1,
@@ -33,6 +30,10 @@ const MEMBERS_PER_PAGE = 10;
 const DAYS_PER_CHUNK = 15;
 
 export function ReportGenerator() {
+  // Fix: Moved getConfig() inside the component
+  const { publicRuntimeConfig } = getConfig() || { publicRuntimeConfig: { featureFlags: {} } };
+  const { featureFlags } = publicRuntimeConfig;
+  
   const { members: allMembers } = useContext(MembersContext);
   const { attendance: allAttendance, toggleAttendance } = useContext(AttendanceContext);
   const { toast } = useToast();
