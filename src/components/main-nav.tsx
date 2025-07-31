@@ -8,6 +8,7 @@ const navItems = [
   { href: '/', label: 'Attendance' },
   { href: '/members', label: 'Members' },
   { href: '/reports', label: 'Reports' },
+  { href: '/dashboard', label: 'Dashboard' },
 ];
 
 export function MainNav() {

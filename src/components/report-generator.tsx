@@ -2,7 +2,8 @@
 
 import { useState, useContext, useRef, useEffect } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getDaysInMonth, format } from 'date-fns';
+import { getDaysInMonth, format, isFuture, startOfToday } from 'date-fns';
+import getConfig from 'next/config';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,9 +15,10 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceGrid } from './attendance-grid';
-import type { Member, AttendanceRecord } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { AppContext } from '@/context/app-context';
+import { Logo } from './icons';
+import { MembersContext } from '@/context/members-context';
+import { AttendanceContext } from '@/context/attendance-context';
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -28,13 +30,16 @@ const MEMBERS_PER_PAGE = 10;
 const DAYS_PER_CHUNK = 15;
 
 export function ReportGenerator() {
-  const { members: allMembers, attendance: allAttendance } = useContext(AppContext);
+  const { publicRuntimeConfig } = getConfig() || { publicRuntimeConfig: { featureFlags: {} } };
+  const { featureFlags } = publicRuntimeConfig;
+  
+  const { members: allMembers } = useContext(MembersContext);
+  const { attendance: allAttendance, toggleAttendance } = useContext(AttendanceContext);
   const { toast } = useToast();
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
   const [reportData, setReportData] = useState<{
-    attendance: AttendanceRecord[];
-    totalDays: number;
+    days: number[];
     month: number;
     year: number;
   } | null>(null);
@@ -46,21 +51,28 @@ export function ReportGenerator() {
         reportRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [reportData]);
+  
+  const handleCellClick = (memberId: string, date: string, status: 'P' | 'A') => {
+    toggleAttendance({ memberId, date, status });
+  };
 
   const handleGenerateReport = () => {
     const year = parseInt(selectedYear);
     const month = parseInt(selectedMonth);
-    const daysInMonth = getDaysInMonth(new Date(year, month - 1));
+    const today = startOfToday();
+    
+    let daysInMonth = getDaysInMonth(new Date(year, month - 1));
+    let daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-    const monthStr = month.toString().padStart(2, '0');
-    const filteredAttendance = allAttendance.filter((rec) =>
-      rec.date.startsWith(`${year}-${monthStr}`)
-    );
+    // Filter out future dates from the report
+    daysArray = daysArray.filter(day => {
+      const dayDate = new Date(year, month - 1, day);
+      return !isFuture(dayDate) || dayDate.getTime() === today.getTime();
+    });
     
     setCurrentPage(1);
     setReportData({
-      attendance: filteredAttendance,
-      totalDays: daysInMonth,
+      days: daysArray,
       month: month,
       year: year,
     });
@@ -68,11 +80,20 @@ export function ReportGenerator() {
   
   const handleExport = (format: 'CSV' | 'PDF') => {
     if (format === 'PDF') {
-      window.print();
+      if (featureFlags.pdfExport) {
+        window.print();
+      } else {
+         toast({
+          title: "Feature Not Available",
+          description: "PDF export is currently disabled.",
+          variant: 'destructive',
+        });
+      }
     } else {
       toast({
-        title: "Export Initiated",
-        description: `Your ${format} export will be downloaded shortly. (This is a demo action)`,
+        title: "Export Not Implemented",
+        description: `CSV export is a planned feature.`,
+        variant: 'destructive',
       });
       console.log(`Exporting report as ${format}...`);
     }
@@ -85,9 +106,8 @@ export function ReportGenerator() {
   
   const dayChunks: number[][] = [];
   if (reportData) {
-    const allDays = Array.from({ length: reportData.totalDays }, (_, i) => i + 1);
-    for (let i = 0; i < allDays.length; i += DAYS_PER_CHUNK) {
-        dayChunks.push(allDays.slice(i, i + DAYS_PER_CHUNK));
+    for (let i = 0; i < reportData.days.length; i += DAYS_PER_CHUNK) {
+        dayChunks.push(reportData.days.slice(i, i + DAYS_PER_CHUNK));
     }
   }
 
@@ -160,9 +180,11 @@ export function ReportGenerator() {
                <Button variant="outline" onClick={() => handleExport('CSV')}>
                  <FileText className="mr-2 h-4 w-4" /> Export as CSV
                </Button>
-               <Button variant="outline" onClick={() => handleExport('PDF')}>
-                 <Download className="mr-2 h-4 w-4" /> Export as PDF
-               </Button>
+               {featureFlags.pdfExport && (
+                 <Button variant="outline" onClick={() => handleExport('PDF')}>
+                   <Download className="mr-2 h-4 w-4" /> Export as PDF
+                 </Button>
+               )}
             </div>
           </div>
           
@@ -170,10 +192,11 @@ export function ReportGenerator() {
           <div className="printable-area print:hidden">
             <AttendanceGrid
               members={paginatedMembers}
-              attendance={reportData.attendance}
-              days={Array.from({ length: reportData.totalDays }, (_, i) => i + 1)}
+              attendance={allAttendance}
+              days={reportData.days}
               month={reportData.month}
               year={reportData.year}
+              onCellClick={handleCellClick}
             />
           </div>
 
@@ -182,13 +205,22 @@ export function ReportGenerator() {
             {Array.from({ length: totalPages }, (_, pageIndex) => pageIndex + 1).map(page => (
               dayChunks.map((chunk, chunkIndex) => (
                  <div key={`${page}-${chunkIndex}`} className="page-break">
-                    <div className="mb-4">
-                      <h2 className="text-2xl font-bold">Attendance Report - {months.find(m => m.value.toString() === selectedMonth)?.label} {selectedYear}</h2>
-                      <p className="text-muted-foreground">Page {page} of {totalPages} (Days: {chunk[0]}-{chunk[chunk.length-1]})</p>
+                    <div className="mb-6 border-b pb-4">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <Logo className="h-10 w-10 text-primary" />
+                           <h1 className="text-3xl font-bold text-primary">YuktiYantra</h1>
+                         </div>
+                         <div className="text-right">
+                            <h2 className="text-xl font-semibold">Attendance Report</h2>
+                            <p className="text-muted-foreground">{months.find(m => m.value.toString() === selectedMonth)?.label} {selectedYear}</p>
+                         </div>
+                      </div>
+                       <p className="text-sm text-muted-foreground mt-2">Page {page} of {totalPages} (Days: {chunk[0]}-{chunk[chunk.length-1]})</p>
                     </div>
                     <AttendanceGrid
                       members={allMembers.slice((page - 1) * MEMBERS_PER_PAGE, page * MEMBERS_PER_PAGE)}
-                      attendance={reportData.attendance}
+                      attendance={allAttendance}
                       days={chunk}
                       month={reportData.month}
                       year={reportData.year}

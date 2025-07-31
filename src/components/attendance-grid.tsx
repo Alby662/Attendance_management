@@ -19,15 +19,14 @@ interface AttendanceGridProps {
   days: number[];
   month: number;
   year: number;
+  onCellClick?: (memberId: string, date: string, status: 'P' | 'A') => void;
 }
 
-export function AttendanceGrid({ members, attendance, days, month, year }: AttendanceGridProps) {
-  const attendanceMap = new Map<string, Set<string>>();
+export function AttendanceGrid({ members, attendance, days, month, year, onCellClick }: AttendanceGridProps) {
+  const attendanceMap = new Map<string, string>(); // Maps date -> memberId -> status
   attendance.forEach(rec => {
-    if (!attendanceMap.has(rec.date)) {
-      attendanceMap.set(rec.date, new Set());
-    }
-    attendanceMap.get(rec.date)?.add(rec.memberId);
+    const key = `${rec.date}-${rec.memberId}`;
+    attendanceMap.set(key, rec.status);
   });
 
   if (members.length === 0) {
@@ -51,7 +50,7 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
               const dayOfWeek = getDay(dayDate); // 0 for Sunday, 6 for Saturday
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
               return (
-                <TableHead key={day} className={cn("w-20 text-center", isWeekend && "bg-red-50/50")}>
+                <TableHead key={day} className={cn("w-20 text-center", isWeekend && "bg-red-50/50 print:bg-red-50")}>
                   {day} <br/> {format(dayDate, 'E')}
                 </TableHead>
               )
@@ -75,17 +74,23 @@ export function AttendanceGrid({ members, attendance, days, month, year }: Atten
                 }
                 
                 if (isWeekend) {
-                   return <TableCell key={day} className="text-center bg-red-50/50 text-muted-foreground">--</TableCell>;
+                   return <TableCell key={day} className="text-center bg-red-50/50 print:bg-red-50 text-muted-foreground">--</TableCell>;
                 }
 
-                const isPresent = attendanceMap.get(date)?.has(member.id) ?? false;
+                const status = attendanceMap.get(`${date}-${member.id}`) || 'A';
+                const isPresent = status === 'P';
                 
                 return (
-                  <TableCell key={day} className={cn(
+                  <TableCell 
+                    key={day} 
+                    className={cn(
                       "text-center font-semibold",
-                       isPresent ? 'text-primary' : 'text-destructive/80'
-                    )}>
-                      {isPresent ? 'P' : 'A'}
+                       isPresent ? 'text-primary' : 'text-destructive/80',
+                       onCellClick && "cursor-pointer hover:bg-muted/50"
+                    )}
+                    onClick={() => onCellClick?.(member.id, date, status)}
+                  >
+                      {status}
                   </TableCell>
                 );
               })}

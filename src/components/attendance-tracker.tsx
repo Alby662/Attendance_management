@@ -13,30 +13,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AppContext } from '@/context/app-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MembersContext } from '@/context/members-context';
+import { AttendanceContext } from '@/context/attendance-context';
 
 export function AttendanceTracker() {
-  const { members, attendance, addAttendanceRecord } = useContext(AppContext);
+  const { members, isLoading: isMembersLoading } = useContext(MembersContext);
+  const { attendance, addAttendanceRecord, isLoading: isAttendanceLoading } = useContext(AttendanceContext);
   const [presentMembers, setPresentMembers] = useState<Set<string>>(new Set());
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const todayString = new Date().toISOString().split('T')[0];
     const todaysPresents = new Set(
-      attendance.filter((rec) => rec.date === todayString).map((rec) => rec.memberId)
+      attendance.filter((rec) => rec.date === todayString && rec.status === 'P').map((rec) => rec.memberId)
     );
     setPresentMembers(todaysPresents);
   }, [attendance]);
 
-  const handleMarkPresent = (memberId: string) => {
+  const handleMarkPresent = async (memberId: string) => {
     const todayString = new Date().toISOString().split('T')[0];
-    addAttendanceRecord({ memberId, date: todayString });
-    setPresentMembers((prev) => new Set(prev).add(memberId));
+    await addAttendanceRecord({ memberId, date: todayString, status: 'P' });
   };
   
-  if (!isClient) {
+  const isLoading = isMembersLoading || isAttendanceLoading;
+
+  if (isLoading) {
     return (
         <Card>
             <CardContent className="p-0">
