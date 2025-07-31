@@ -25,14 +25,14 @@ export function AttendanceTracker() {
   useEffect(() => {
     const todayString = new Date().toISOString().split('T')[0];
     const todaysPresents = new Set(
-      attendance.filter((rec) => rec.date === todayString).map((rec) => rec.memberId)
+      attendance.filter((rec) => rec.date === todayString && rec.status === 'P').map((rec) => rec.memberId)
     );
     setPresentMembers(todaysPresents);
   }, [attendance]);
 
   const handleMarkPresent = async (memberId: string) => {
     const todayString = new Date().toISOString().split('T')[0];
-    await addAttendanceRecord({ memberId, date: todayString });
+    await addAttendanceRecord({ memberId, date: todayString, status: 'P' });
   };
   
   const isLoading = isMembersLoading || isAttendanceLoading;

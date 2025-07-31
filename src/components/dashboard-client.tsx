@@ -47,15 +47,6 @@ export function DashboardClient() {
     const monthStr = selectedMonth.padStart(2, '0');
     const daysInMonth = getDaysInMonth(new Date(year, month - 1));
 
-    let workingDays = 0;
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month - 1, day);
-        const dayOfWeek = getDay(date);
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            workingDays++;
-        }
-    }
-
     const monthAttendance = attendance.filter(rec => rec.date.startsWith(`${year}-${monthStr}`));
 
     return members.map(member => {
@@ -69,7 +60,7 @@ export function DashboardClient() {
         }
       }
 
-      const presentCount = monthAttendance.filter(rec => rec.memberId === member.id).length;
+      const presentCount = monthAttendance.filter(rec => rec.memberId === member.id && rec.status === 'P').length;
       const absentCount = effectiveWorkingDays - presentCount;
       
       return {
@@ -91,7 +82,7 @@ export function DashboardClient() {
 
         if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
-        const presentCount = attendance.filter(rec => rec.date === dateStr).length;
+        const presentCount = attendance.filter(rec => rec.date === dateStr && rec.status === 'P').length;
         trendData.push({
             date: format(date, 'MMM d'),
             'Present Members': presentCount,

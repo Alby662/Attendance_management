@@ -53,7 +53,7 @@ export function ReportGenerator() {
   }, [reportData]);
   
   const handleCellClick = (memberId: string, date: string, status: 'P' | 'A') => {
-    toggleAttendance({ memberId, date });
+    toggleAttendance({ memberId, date, status });
   };
 
   const handleGenerateReport = () => {

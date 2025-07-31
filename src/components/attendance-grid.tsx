@@ -23,12 +23,10 @@ interface AttendanceGridProps {
 }
 
 export function AttendanceGrid({ members, attendance, days, month, year, onCellClick }: AttendanceGridProps) {
-  const attendanceMap = new Map<string, Set<string>>();
+  const attendanceMap = new Map<string, string>(); // Maps date -> memberId -> status
   attendance.forEach(rec => {
-    if (!attendanceMap.has(rec.date)) {
-      attendanceMap.set(rec.date, new Set());
-    }
-    attendanceMap.get(rec.date)?.add(rec.memberId);
+    const key = `${rec.date}-${rec.memberId}`;
+    attendanceMap.set(key, rec.status);
   });
 
   if (members.length === 0) {
@@ -79,7 +77,8 @@ export function AttendanceGrid({ members, attendance, days, month, year, onCellC
                    return <TableCell key={day} className="text-center bg-red-50/50 print:bg-red-50 text-muted-foreground">--</TableCell>;
                 }
 
-                const isPresent = attendanceMap.get(date)?.has(member.id) ?? false;
+                const status = attendanceMap.get(`${date}-${member.id}`) || 'A';
+                const isPresent = status === 'P';
                 
                 return (
                   <TableCell 
@@ -89,9 +88,9 @@ export function AttendanceGrid({ members, attendance, days, month, year, onCellC
                        isPresent ? 'text-primary' : 'text-destructive/80',
                        onCellClick && "cursor-pointer hover:bg-muted/50"
                     )}
-                    onClick={() => onCellClick?.(member.id, date, isPresent ? 'A' : 'P')}
+                    onClick={() => onCellClick?.(member.id, date, status)}
                   >
-                      {isPresent ? 'P' : 'A'}
+                      {status}
                   </TableCell>
                 );
               })}
