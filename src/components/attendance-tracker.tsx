@@ -18,13 +18,11 @@ import { MembersContext } from '@/context/members-context';
 import { AttendanceContext } from '@/context/attendance-context';
 
 export function AttendanceTracker() {
-  const { members } = useContext(MembersContext);
-  const { attendance, addAttendanceRecord } = useContext(AttendanceContext);
+  const { members, isLoading: isMembersLoading } = useContext(MembersContext);
+  const { attendance, addAttendanceRecord, isLoading: isAttendanceLoading } = useContext(AttendanceContext);
   const [presentMembers, setPresentMembers] = useState<Set<string>>(new Set());
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const todayString = new Date().toISOString().split('T')[0];
     const todaysPresents = new Set(
       attendance.filter((rec) => rec.date === todayString).map((rec) => rec.memberId)
@@ -32,13 +30,14 @@ export function AttendanceTracker() {
     setPresentMembers(todaysPresents);
   }, [attendance]);
 
-  const handleMarkPresent = (memberId: string) => {
+  const handleMarkPresent = async (memberId: string) => {
     const todayString = new Date().toISOString().split('T')[0];
-    addAttendanceRecord({ memberId, date: todayString });
-    setPresentMembers((prev) => new Set(prev).add(memberId));
+    await addAttendanceRecord({ memberId, date: todayString });
   };
   
-  if (!isClient) {
+  const isLoading = isMembersLoading || isAttendanceLoading;
+
+  if (isLoading) {
     return (
         <Card>
             <CardContent className="p-0">

@@ -7,6 +7,7 @@ export type Member = {
 };
 
 export type AttendanceRecord = {
+  id?: string; // Optional: The doc ID from Firestore
   memberId: string;
   date: string; // YYYY-MM-DD format
 };

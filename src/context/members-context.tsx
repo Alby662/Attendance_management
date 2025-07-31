@@ -1,48 +1,77 @@
 'use client';
 
-import React, { createContext, ReactNode } from 'react';
+import React, { createContext, ReactNode, useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { Member } from '@/lib/types';
-import { members as initialMembers } from '@/lib/data';
-import { usePersistence } from '@/hooks/use-persistence';
 import { logAuditEvent } from '@/lib/audit';
 
 interface MembersContextType {
   members: Member[];
-  addMember: (member: Omit<Member, 'id'>) => void;
-  updateMember: (member: Member) => void;
-  deleteMember: (memberId: string) => void;
+  addMember: (member: Omit<Member, 'id'>) => Promise<void>;
+  updateMember: (member: Member) => Promise<void>;
+  deleteMember: (memberId: string) => Promise<void>;
   isLoading: boolean;
 }
 
 export const MembersContext = createContext<MembersContextType>({
   members: [],
-  addMember: () => {},
-  updateMember: () => {},
-  deleteMember: () => {},
+  addMember: async () => {},
+  updateMember: async () => {},
+  deleteMember: async () => {},
   isLoading: true,
 });
 
-const sortMembers = (m: Member[]) => [...m].sort((a, b) => a.name.localeCompare(b.name));
-
 export const MembersProvider = ({ children }: { children: ReactNode }) => {
-  const [members, setMembers, isLoading] = usePersistence<Member[]>('attendease_members', initialMembers, sortMembers);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addMember = (member: Omit<Member, 'id'>) => {
-    const newMember = { ...member, id: Date.now().toString() };
-    setMembers((prev) => sortMembers([...prev, newMember]));
-    logAuditEvent('ADD_MEMBER', { member: newMember });
+  useEffect(() => {
+    const q = query(collection(db, 'members'), orderBy('name', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const membersData: Member[] = [];
+      querySnapshot.forEach((doc) => {
+        membersData.push({ id: doc.id, ...doc.data() } as Member);
+      });
+      setMembers(membersData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching members:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addMember = async (member: Omit<Member, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'members'), member);
+      logAuditEvent('ADD_MEMBER', { memberId: docRef.id, ...member });
+    } catch (e) {
+      console.error("Error adding member: ", e);
+    }
   };
 
-  const updateMember = (updatedMember: Member) => {
-    setMembers((prev) =>
-      sortMembers(prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)))
-    );
-    logAuditEvent('UPDATE_MEMBER', { memberId: updatedMember.id });
+  const updateMember = async (updatedMember: Member) => {
+    const memberDocRef = doc(db, 'members', updatedMember.id);
+    try {
+      // Omit the 'id' field from the data being sent to Firestore
+      const { id, ...memberData } = updatedMember;
+      await updateDoc(memberDocRef, memberData);
+      logAuditEvent('UPDATE_MEMBER', { memberId: id });
+    } catch (e) {
+      console.error("Error updating member: ", e);
+    }
   };
 
-  const deleteMember = (memberId: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
-    logAuditEvent('DELETE_MEMBER', { memberId });
+  const deleteMember = async (memberId: string) => {
+    try {
+      await deleteDoc(doc(db, 'members', memberId));
+      logAuditEvent('DELETE_MEMBER', { memberId });
+    } catch (e) {
+      console.error("Error deleting member: ", e);
+    }
   };
 
   return (

@@ -1,68 +1,82 @@
 'use client';
 
-import React, { createContext, ReactNode, useContext } from 'react';
+import React, { createContext, ReactNode, useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { AttendanceRecord } from '@/lib/types';
-import { attendanceRecords as initialAttendance } from '@/lib/data';
-import { usePersistence } from '@/hooks/use-persistence';
-import { MembersContext } from './members-context';
 import { logAuditEvent } from '@/lib/audit';
 
 interface AttendanceContextType {
   attendance: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => void;
-  toggleAttendance: (record: Omit<AttendanceRecord, 'id'>) => void;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+  toggleAttendance: (record: { memberId: string; date: string }) => Promise<void>;
   isLoading: boolean;
 }
 
 export const AttendanceContext = createContext<AttendanceContextType>({
   attendance: [],
-  addAttendanceRecord: () => {},
-  toggleAttendance: () => {},
+  addAttendanceRecord: async () => {},
+  toggleAttendance: async () => {},
   isLoading: true,
 });
 
 export const AttendanceProvider = ({ children }: { children: ReactNode }) => {
-  const { members } = useContext(MembersContext);
-  const [attendance, setAttendance, isLoading] = usePersistence<AttendanceRecord[]>('attendease_attendance', initialAttendance);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addAttendanceRecord = (record: AttendanceRecord) => {
-    setAttendance((prev) => {
-      const existing = prev.find(r => r.memberId === record.memberId && r.date === record.date);
-      if (existing) {
-        return prev;
-      }
-      const newRecord = [...prev, record];
-      logAuditEvent('ADD_ATTENDANCE', { record });
-      return newRecord;
-    });
-  };
+  useEffect(() => {
+    const q = query(collection(db, 'attendance'));
 
-  const toggleAttendance = (record: AttendanceRecord) => {
-    setAttendance((prev) => {
-      const existingIndex = prev.findIndex(r => r.memberId === record.memberId && r.date === record.date);
-      if (existingIndex > -1) {
-        // Record exists, so remove it (mark as absent)
-        const newAttendance = [...prev];
-        newAttendance.splice(existingIndex, 1);
-        logAuditEvent('REMOVE_ATTENDANCE', { record });
-        return newAttendance;
-      } else {
-        // Record does not exist, so add it (mark as present)
-        logAuditEvent('ADD_ATTENDANCE', { record });
-        return [...prev, record];
-      }
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const attendanceData: AttendanceRecord[] = [];
+      querySnapshot.forEach((doc) => {
+        attendanceData.push({ id: doc.id, ...doc.data() } as AttendanceRecord);
+      });
+      setAttendance(attendanceData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching attendance:", error);
+      setIsLoading(false);
     });
-  };
-  
-  // This effect ensures that when a member is deleted, their attendance records are also cleaned up.
-  React.useEffect(() => {
-    if (isLoading) return;
-    const memberIds = new Set(members.map(m => m.id));
-    const filteredAttendance = attendance.filter(rec => memberIds.has(rec.memberId));
-    if(filteredAttendance.length < attendance.length) {
-        setAttendance(filteredAttendance);
+
+    return () => unsubscribe();
+  }, []);
+
+  const addAttendanceRecord = async (record: Omit<AttendanceRecord, 'id'>) => {
+    // Check if record already exists
+    const q = query(collection(db, 'attendance'), where('memberId', '==', record.memberId), where('date', '==', record.date));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      try {
+        const docRef = await addDoc(collection(db, 'attendance'), record);
+        logAuditEvent('ADD_ATTENDANCE', { recordId: docRef.id, ...record });
+      } catch (e) {
+        console.error("Error adding attendance record: ", e);
+      }
     }
-  }, [members, attendance, setAttendance, isLoading]);
+  };
+
+  const toggleAttendance = async (record: { memberId: string; date: string }) => {
+    const { memberId, date } = record;
+    const q = query(collection(db, 'attendance'), where('memberId', '==', memberId), where('date', '==', date));
+    
+    try {
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        // Record does not exist, so add it (mark as present)
+        await addDoc(collection(db, 'attendance'), record);
+        logAuditEvent('ADD_ATTENDANCE', { record });
+      } else {
+        // Record exists, so remove it (mark as absent)
+        const docId = querySnapshot.docs[0].id;
+        await deleteDoc(doc(db, 'attendance', docId));
+        logAuditEvent('REMOVE_ATTENDANCE', { record });
+      }
+    } catch (e) {
+      console.error("Error toggling attendance: ", e);
+    }
+  };
 
   return (
     <AttendanceContext.Provider

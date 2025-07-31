@@ -30,7 +30,6 @@ const MEMBERS_PER_PAGE = 10;
 const DAYS_PER_CHUNK = 15;
 
 export function ReportGenerator() {
-  // Fix: Moved getConfig() inside the component
   const { publicRuntimeConfig } = getConfig() || { publicRuntimeConfig: { featureFlags: {} } };
   const { featureFlags } = publicRuntimeConfig;
   
@@ -55,7 +54,6 @@ export function ReportGenerator() {
   
   const handleCellClick = (memberId: string, date: string, status: 'P' | 'A') => {
     toggleAttendance({ memberId, date });
-    // We can directly call the context function, the state will update automatically
   };
 
   const handleGenerateReport = () => {
@@ -182,9 +180,11 @@ export function ReportGenerator() {
                <Button variant="outline" onClick={() => handleExport('CSV')}>
                  <FileText className="mr-2 h-4 w-4" /> Export as CSV
                </Button>
-               <Button variant="outline" onClick={() => handleExport('PDF')}>
-                 <Download className="mr-2 h-4 w-4" /> Export as PDF
-               </Button>
+               {featureFlags.pdfExport && (
+                 <Button variant="outline" onClick={() => handleExport('PDF')}>
+                   <Download className="mr-2 h-4 w-4" /> Export as PDF
+                 </Button>
+               )}
             </div>
           </div>
           

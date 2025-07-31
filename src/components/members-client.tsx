@@ -11,7 +11,7 @@ import { MemberTable } from '@/components/member-table';
 import { MembersContext } from '@/context/members-context';
 
 export function MembersClient() {
-  const { members, addMember, updateMember, deleteMember } = useContext(MembersContext);
+  const { members, addMember, updateMember, deleteMember, isLoading } = useContext(MembersContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
@@ -25,15 +25,15 @@ export function MembersClient() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteMember = (memberId: string) => {
-    deleteMember(memberId);
+  const handleDeleteMember = async (memberId: string) => {
+    await deleteMember(memberId);
   };
 
-  const handleSaveMember = (memberData: Omit<Member, 'id'> & { id?: string }) => {
+  const handleSaveMember = async (memberData: Omit<Member, 'id'> & { id?: string }) => {
     if (memberData.id) {
-      updateMember({ ...memberData, id: memberData.id });
+      await updateMember({ ...memberData, id: memberData.id });
     } else {
-      addMember(memberData);
+      await addMember(memberData);
     }
     setIsFormOpen(false);
   };
@@ -55,6 +55,7 @@ export function MembersClient() {
             members={members}
             onEdit={handleEditMember}
             onDelete={handleDeleteMember}
+            isLoading={isLoading}
           />
         </CardContent>
       </Card>
